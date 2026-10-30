@@ -8,6 +8,13 @@ payments as (
     select * from {{ ref('stg_shop__payments') }}
 ),
 
+order_items_counts as (
+    select
+        order_id,
+        count(distinct product_id) as items_count
+    from {{ ref('stg_shop__order_items') }} group by order_id
+),
+
 order_payments as (
     select
         order_id,
@@ -36,6 +43,7 @@ select
     o.order_status,
     o.order_amount,
     o.is_test_order,
+    coalesce(i.items_count, 0) as items_count,
     coalesce(p.successful_payments_count, 0) as successful_payments_count,   -- 0 вместо null
     coalesce(p.paid_amount, 0)               as paid_amount,
     coalesce(p.refunded_amount, 0)           as refunded_amount,
@@ -50,3 +58,5 @@ select
 from orders as o
 left join order_payments as p
     on p.order_id = o.order_id
+left join order_items_counts as i
+    on i.order_id = o.order_id
